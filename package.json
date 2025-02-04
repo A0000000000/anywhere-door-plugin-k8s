@@ -1,0 +1,19 @@
+{
+  "name": "anywhere-door-plugin-glances",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@kubernetes/client-node": "^1.0.0",
+    "axios": "^1.7.7",
+    "koa": "^2.15.3",
+    "koa-router": "^13.0.1"
+  }
+}

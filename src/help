@@ -1,0 +1,6 @@
+kubebot指令帮助:
+指令格式: [*operator] [*resource] [name] [addition params]
+    * operator: 动作, 支持 get
+    * resource: 资源, 支持: pods、services、deployments、statefulsets、namespaces、nodes
+    * name: 可选, 资源名称
+    * addition params: 附加参数, 支持 -n namespaceName、-o wide
