@@ -88,9 +88,9 @@ export default {
                         const pods = podList.items.map(item => {
                             const res = {
                                 name: item.metadata.name,
-                                ready: `${item.status.containerStatuses.filter(i => i.ready === true).length}/${item.status.containerStatuses.length}`,
+                                ready: (!!item.status.containerStatuses) ? `${item.status.containerStatuses.filter(i => i.ready === true).length}/${item.status.containerStatuses.length}` : '0/1',
                                 status: item.status.phase,
-                                restart: item.status.containerStatuses.reduce((sum, i) => sum + i.restartCount, 0)
+                                restart: (!!item.status.containerStatuses) ? item.status.containerStatuses.reduce((sum, i) => sum + i.restartCount, 0) : 0
                             }
                             if (cmdParams.hasOwnProperty('format') && cmdParams.format === 'wide') {
                                 res.ip = item.status.podIP
