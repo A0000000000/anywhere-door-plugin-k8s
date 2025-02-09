@@ -14,11 +14,12 @@ ENV PATH=$PATH:$NODE_HOME/bin
 
 WORKDIR /ws/code
 
-COPY src /ws/code/src
 COPY package.json /ws/code
 COPY package-lock.json /ws/code
 
 RUN npm i
+
+COPY src /ws/code/src
 
 EXPOSE 80
 
