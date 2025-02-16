@@ -1,5 +1,6 @@
 const PLUGIN_URL = '/plugin'
 const PLUGIN_CONFIG_URL = '/plugin/config'
+const PLUGIN_LOG_URL = '/plugin/log'
 
 const EVENT_DATA = 'data'
 
@@ -21,9 +22,15 @@ const ERROR_MESSAGE_TOKEN_INVALID = 'token not valid'
 
 const CONTROL_PLANE_BASE_REQUEST_URL = (host, port, prefix) =>  `http://${host}:${port}${prefix}`
 
+const LOG_LEVEL_DEBUG = 1
+const LOG_LEVEL_INFO = 2
+const LOG_LEVEL_WARN = 3
+const LOG_LEVEL_ERROR = 4
+
 export default {
     PLUGIN_URL,
     PLUGIN_CONFIG_URL,
+    PLUGIN_LOG_URL,
     EVENT_DATA,
     PARAMS_NAME,
     AUTHORIZATION,
@@ -37,5 +44,9 @@ export default {
     ERROR_MESSAGE_SUCCESS,
     ERROR_MESSAGE_NOT_THS_PLUGIN,
     ERROR_MESSAGE_TOKEN_INVALID,
-    CONTROL_PLANE_BASE_REQUEST_URL
+    CONTROL_PLANE_BASE_REQUEST_URL,
+    LOG_LEVEL_DEBUG,
+    LOG_LEVEL_INFO,
+    LOG_LEVEL_WARN,
+    LOG_LEVEL_ERROR
 }
