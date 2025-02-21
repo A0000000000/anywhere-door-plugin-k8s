@@ -17,7 +17,7 @@ async function processCommand(raw, extend) {
         if (cmds[0] === 'help') {
             return await cmdList['help']()
         } else {
-            return await cmdList['other'](config, cmds)
+            return await cmdList['other'](config, cmds, extend.logCtx)
         }
     } else {
         return cmdConstant.RESULT_PARAMS_ERROR

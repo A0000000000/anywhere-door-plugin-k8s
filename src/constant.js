@@ -20,7 +20,7 @@ const ERROR_MESSAGE_SUCCESS = 'success'
 const ERROR_MESSAGE_NOT_THS_PLUGIN = 'not this plugin'
 const ERROR_MESSAGE_TOKEN_INVALID = 'token not valid'
 
-const CONTROL_PLANE_BASE_REQUEST_URL = (host, port, prefix) =>  `http://${host}:${port}${prefix}`
+const CONTROL_PLANE_BASE_REQUEST_URL = (host, port, prefix) => `http://${host}:${port}${prefix}`
 
 const LOG_LEVEL_DEBUG = 1
 const LOG_LEVEL_INFO = 2

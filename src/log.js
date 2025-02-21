@@ -1,4 +1,4 @@
-import constant from "./constant.js"
+import constant from './constant.js'
 
 export default class LogContext {
 
@@ -30,7 +30,8 @@ export default class LogContext {
             level: level,
             tag: tag,
             log: msg
-        }).then(res => {})
+        }).then(res => {
+        })
     }
 
 }
