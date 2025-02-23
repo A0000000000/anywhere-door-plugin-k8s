@@ -1,6 +1,12 @@
 kubebot指令帮助:
 指令格式: [*operator] [*resource] [name] [addition params]
-    * operator: 动作, 支持: get
-    * resource: 资源, 支持: pods、services、deployments、statefulsets、namespaces、nodes
+    * operator: 动作, 支持: get、top、run、expose、delete、create
+    * resource: 资源, 支持:
+        * get: pods、services、deployments、statefulsets、namespaces、nodes
+        * top: pods、nodes
+        * run: 只能创建pod或者pod+svc
+        * expose: pods
+        * delete: pods、services、namespace(删除namespace时，一定要慎重。会将对应namespace下的所有资源都删除！！！)
+        * create: namespace
     * name: 可选, 资源名称
-    * addition params: 附加参数, 支持 -n namespaceName、-o wide
+    * addition params: 附加参数, 支持 -n namespaceName(默认为default)、-o wide

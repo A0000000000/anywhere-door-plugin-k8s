@@ -25,8 +25,11 @@ async function processKubectlCommand(config, cmdArray, logCtx) {
 
     const cmdParams = {
         operator: cmdArray[0],
-        resource: resourceMap.get(cmdArray[1]) || cmdArray[1],
         ns: 'default',
+    }
+
+    if (cmdParams.operator !== 'run') {
+        cmdParams.resource = resourceMap.get(cmdArray[1]) || cmdArray[1]
     }
 
     const paramRules = {
@@ -34,7 +37,7 @@ async function processKubectlCommand(config, cmdArray, logCtx) {
         '-o': {target: 'format', required: true},
     }
 
-    for (let i = 2; i < cmdArray.length; i++) {
+    for (let i = cmdParams.operator !== 'run' ? 2 : 1; i < cmdArray.length; i++) {
         const cmd = cmdArray[i]
         if (paramRules[cmd]) {
             const rule = paramRules[cmd]
@@ -43,6 +46,37 @@ async function processKubectlCommand(config, cmdArray, logCtx) {
             }
             cmdParams[rule.target] = cmdArray[i + 1]
             i++
+        } else if (cmd.startsWith('--')) {
+            const kv = cmd.split('=')
+            if (kv.length !== 2) {
+                // 无效的参数
+                return cmdConstant.RESULT_CMD_PARAMS_ERROR
+            }
+            switch (kv[0]) {
+                case '--image':
+                    cmdParams.image = kv[1]
+                    break
+                case '--expose':
+                    cmdParams.expose = kv[1]
+                    break
+                case '--port':
+                    cmdParams.port = kv[1]
+                    break
+                case '--target-port':
+                    cmdParams.targetPort = kv[1]
+                    break
+                case '--node-port':
+                    cmdParams.nodePort = kv[1]
+                    break
+                case '--type':
+                    cmdParams.type = kv[1]
+                    break
+                case '--name':
+                    cmdParams.innerName = kv[1]
+                    break
+                default:
+                    return cmdConstant.RESULT_CMD_PARAMS_ERROR
+            }
         } else {
             if (cmdParams.name) {
                 return cmdConstant.RESULT_CMD_PARAMS_ERROR
@@ -57,6 +91,14 @@ async function processKubectlCommand(config, cmdArray, logCtx) {
                 return formatGetResourceOutput(cmdParams.resource, await handleGetCommand(k8sApi, k8sAppApi, cmdParams))
             case 'top':
                 return await handleTopCommand(metricsApi, cmdParams)
+            case 'run':
+                return await handleRunCommand(k8sApi, cmdParams)
+            case 'expose':
+                return await handleExposeCommand(k8sApi, cmdParams)
+            case 'delete':
+                return await handleDeleteCommand(k8sApi, cmdParams)
+            case 'create':
+                return await handleCreateCommand(k8sApi, cmdParams)
             default:
                 return cmdConstant.RESULT_NO_SUCH_CMD
         }
@@ -225,6 +267,199 @@ function kiToMiOrGi(kbStr) {
         const gb = Math.floor(mb / 1024)
         const remainingMb = mb % 1024
         return `${gb}Gi${remainingMb}Mi${remainingKb}Ki`
+    }
+}
+
+async function handleRunCommand(k8sApi, cmdParams) {
+    // 检查参数
+    if (!cmdParams.name || !cmdParams.image) {
+        return cmdConstant.RESULT_CMD_PARAMS_ERROR
+    }
+
+    const pod = {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: {
+            name: cmdParams.name,
+            namespace: cmdParams.ns,
+            labels: {
+                run: cmdParams.name
+            }
+        },
+        spec: {
+            containers: [
+                {
+                    name: cmdParams.name,
+                    image: cmdParams.image,
+                    imagePullPolicy: 'IfNotPresent'
+                }
+            ]
+        }
+    }
+
+    let createSuccess = false
+    let podCreateResult
+
+    try {
+        podCreateResult = await k8sApi.createNamespacedPod({namespace: pod.metadata.namespace, body: pod})
+        createSuccess = true
+    } catch (err) {
+        return err.body
+    }
+
+    if (createSuccess) {
+        if (cmdParams.expose === 'true' && cmdParams.port) {
+            // 暴露ClusterIP类型的Service
+            const svc = {
+                apiVersion: 'v1',
+                kind: 'Service',
+                metadata: {
+                    name: cmdParams.name,
+                    namespace: cmdParams.ns
+                },
+                spec: {
+                    selector: {
+                        run: cmdParams.name
+                    },
+                    ports: [
+                        {
+                            protocol: 'TCP',
+                            port: parseInt(cmdParams.port),
+                            targetPort: parseInt(cmdParams.targetPort)
+                        }
+                    ],
+                    type: 'ClusterIP'
+                }
+            }
+            try {
+                let svcCreateResult = await k8sApi.createNamespacedService({
+                    namespace: svc.metadata.namespace,
+                    body: svc
+                })
+                return 'Pod Create Success, name: ' + podCreateResult.metadata.name + '\n' + 'Service Create Success, name: ' + svcCreateResult.metadata.name
+            } catch (err) {
+                return 'Pod Create Success, name: ' + podCreateResult.metadata.name + '\n' + err.body
+            }
+        } else {
+            return 'Pod Create Success, name: ' + podCreateResult.metadata.name
+        }
+    } else {
+        return JSON.stringify(podCreateResult)
+    }
+}
+
+async function handleExposeCommand(k8sApi, cmdParams) {
+    if (!cmdParams.name || !cmdParams.port) {
+        return cmdConstant.RESULT_CMD_PARAMS_ERROR
+    }
+    if (!cmdParams.targetPort) {
+        cmdParams.targetPort = cmdParams.port
+    }
+    if (!cmdParams.innerName) {
+        cmdParams.innerName = cmdParams.name
+    }
+    switch (cmdParams.resource) {
+        case 'pods':
+            const svc = {
+                apiVersion: 'v1',
+                kind: 'Service',
+                metadata: {
+                    name: cmdParams.innerName,
+                    namespace: cmdParams.ns
+                },
+                spec: {
+                    selector: {
+                        run: cmdParams.name
+                    },
+                    ports: [
+                        {
+                            protocol: 'TCP',
+                            port: parseInt(cmdParams.port),
+                            targetPort: parseInt(cmdParams.targetPort)
+                        }
+                    ],
+                    type: 'ClusterIP'
+                }
+            }
+            if (cmdParams.type) {
+                svc.spec.type = cmdParams.type
+            }
+            if (cmdParams.nodePort && svc.spec.type === 'NodePort') {
+                svc.spec.ports[0].nodePort = parseInt(cmdParams.nodePort)
+            }
+            try {
+                const svcCreateResult = await k8sApi.createNamespacedService({namespace: svc.metadata.namespace, body: svc})
+                return 'Service Create Success, name: ' + svcCreateResult.metadata.name
+            } catch (err) {
+                return err.body
+            }
+        default:
+            return 'expose only support pod resource.'
+    }
+}
+
+async function handleDeleteCommand(k8sApi, cmdParams) {
+    if (!cmdParams.name) {
+        return cmdConstant.RESULT_CMD_PARAMS_ERROR
+    }
+    switch (cmdParams.resource) {
+        case 'pods':
+            try {
+                const deletePodResult = await k8sApi.deleteNamespacedPod({
+                    name: cmdParams.name,
+                    namespace: cmdParams.ns
+                })
+                return 'Delete Pod Success, name: ' + deletePodResult.metadata.name
+            } catch (err) {
+                return err.message
+            }
+        case 'services':
+            try {
+                const deleteSvcResult = await k8sApi.deleteNamespacedService({
+                    name: cmdParams.name,
+                    namespace: cmdParams.ns
+                })
+                return 'Delete Service Success, name: ' + deleteSvcResult.metadata.name
+            } catch (err) {
+                return err.message
+            }
+        case 'namespaces':
+            try {
+                await k8sApi.deleteNamespace({
+                    name: cmdParams.name
+                })
+                return 'Request Delete Namespace Task Success.'
+            } catch (err) {
+                return err.message
+            }
+        default:
+            return 'delete only support pod or service or namespaces resource'
+    }
+}
+
+async function handleCreateCommand(k8sApi, cmdParams) {
+    if (!cmdParams.name) {
+        return cmdConstant.RESULT_CMD_PARAMS_ERROR
+    }
+    switch (cmdParams.resource) {
+        case 'namespaces':
+            const namespace = {
+                apiVersion: 'v1',
+                kind: 'Namespace',
+                metadata: {
+                    name: cmdParams.name
+                }
+            }
+            try {
+                const createNamespaceResult = await k8sApi.createNamespace({
+                    body: namespace
+                })
+                return 'Create Namespace Success, name: ' + createNamespaceResult.metadata.name
+            } catch (err) {
+                return err.message
+            }
+            default:
+                return 'create only support namespaces resources.'
     }
 }
 
