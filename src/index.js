@@ -45,6 +45,10 @@ function registerPlugin(axiosControlPlane, params) {
         }
     }).catch(error => {
         console.error(error)
+        // 容器未就绪 10s后重试
+        setTimeout(() => {
+            registerPlugin(axiosControlPlane, params)
+        }, 10000)
     })
 }
 
