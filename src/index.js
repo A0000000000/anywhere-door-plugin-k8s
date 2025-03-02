@@ -60,7 +60,7 @@ function main() {
     const token = process.env.TOKEN
     const pluginName = process.env.PLUGIN_NAME
     const selfHost = process.env.SELF_HOST
-    const selfPort = process.env.SELF_PORT || constant.PORT
+    const selfPort = Number(process.env.SELF_PORT || constant.PORT)
     const selfPrefix = process.env.SELF_PREFIX || ''
 
     const axiosControlPlane = axios.create({
