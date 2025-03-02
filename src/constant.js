@@ -1,5 +1,8 @@
+const PORT = 80
+
 const PLUGIN_URL = '/plugin'
 const PLUGIN_CONFIG_URL = '/plugin/config'
+const PLUGIN_REGISTER_URL = '/plugin/register'
 const PLUGIN_LOG_URL = '/plugin/log'
 
 const EVENT_DATA = 'data'
@@ -28,8 +31,10 @@ const LOG_LEVEL_WARN = 3
 const LOG_LEVEL_ERROR = 4
 
 export default {
+    PORT,
     PLUGIN_URL,
     PLUGIN_CONFIG_URL,
+    PLUGIN_REGISTER_URL,
     PLUGIN_LOG_URL,
     EVENT_DATA,
     PARAMS_NAME,
